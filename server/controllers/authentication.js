@@ -26,7 +26,45 @@ authenticationRouter.post("/signup", async (req, res, next) => {
 
     const savedUser = await user.save();
 
-    res.status(201).json(savedUser);
+    const verificationToken = jwt.sign(
+      { data: "Token data" },
+      config.JWT_SECRET,
+      { expiresIn: "10m" }
+    );
+
+    const verificationLink = `http://localhost:3001/api/authentication/verify/${savedUser.id}/${verificationToken}`;
+
+    res.status(201).json({ savedUser, verificationLink });
+  } catch (error) {
+    next(error);
+  }
+});
+
+//account verification
+authenticationRouter.get("/verify/:id/:token", async (req, res, next) => {
+  try {
+    const { token, id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) return res.status(404).send("User not found");
+
+    jwt.verify(token, config.JWT_SECRET, async (err, decoded) => {
+      if (err) {
+        logger.error(err);
+        return res
+          .status(400)
+          .send("Email verification failed. Link is invalid or expired.");
+      } else {
+        //update user to verified
+        const updatedUser = await User.findByIdAndUpdate(
+          id,
+          { isVerified: true },
+          { new: true, runValidators: true, context: "query" }
+        );
+        res.json({ updatedUser, message: "Email was successfully verified." });
+      }
+    });
   } catch (error) {
     next(error);
   }
