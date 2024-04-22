@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const config = require("./utils/config");
 const middleware = require("./utils/middleware");
 const logger = require("./utils/logger");
-const indexRouter = express.Router();
+const authenticationRouter = require("./controllers/authentication");
 
 const app = express();
 
@@ -21,13 +21,9 @@ mongoose
 app.use(express.json());
 app.use(middleware.requestLogger);
 
-indexRouter.get("/", (req, res) => {
-  res.send("hello world");
-});
 //routes
-app.get("/api/3000", (req, res) => {
-  res.send("hello world");
-});
+app.use("/api/authentication", authenticationRouter);
+
 //load last
 app.use(middleware.unknownEndpoint);
 //app.use(middleware.errorHandler);
