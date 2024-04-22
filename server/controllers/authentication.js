@@ -83,6 +83,8 @@ authenticationRouter.post("/login", async (req, res, next) => {
 
     const user = await User.findOne({ email });
 
+    if (!user) return res.status(404).json({ error: "User does not exist." });
+
     const passwordCorrect =
       user === null ? false : await bcrypt.compare(password, user.passwordHash);
 
@@ -90,9 +92,24 @@ authenticationRouter.post("/login", async (req, res, next) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    //check if user is verified
+    if (!user.isVerified) {
+      const verificationToken = jwt.sign(
+        { data: "Token data" },
+        config.JWT_SECRET,
+        { expiresIn: "10m" }
+      );
+      const verificationLink = `http://localhost:3001/api/authentication/verify/${user.id}/${verificationToken}`;
+
+      return res
+        .status()
+        .json({ verificationLink, error: "Email is not verified" });
+    }
+    //if account is verified
     const userForToken = {
       email: user.email,
       id: user._id,
+      isVerified: user.isVerified,
       isAdmin: user.isAdmin,
       isVendor: user.isVendor,
     };
